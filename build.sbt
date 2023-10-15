@@ -34,6 +34,7 @@ val commonSettings = Seq(
 lazy val root = (project in file("."))
   .aggregate(
     `type-sets-2020`,
+    `type-set`,
   )
   .settings(
     name := "type-sets",
@@ -44,4 +45,10 @@ lazy val `type-sets-2020` = (project in file("type-sets-2020"))
   .settings(commonSettings :_*)
   .settings(
     name := "type-sets-2020",
+  )
+
+lazy val `type-set` = (project in file("type-set"))
+  .settings(commonSettings :_*)
+  .settings(
+    name := "type-set",
   )
