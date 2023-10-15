@@ -16,103 +16,95 @@ class BelongsTest extends TestSuite {
     case object d extends e
     type d = d.type
 
-    type `{a,b}` = Singleton[a] ∪ Singleton[b]
-    type `{b,a}` = Singleton[b] ∪ Singleton[a]
-    type `{a,b,c}` = Singleton[a] ∪ Singleton[b] ∪ Singleton[c]
+    type `{a}` = Singleton[a]
+    type `{b}` = Singleton[b]
+    type `{c}` = Singleton[c]
+    type `{d}` = Singleton[d]
+
+    type `{a,b}` = `{a}` ∪ `{b}`
+
+    type `{b,a}` = `{b}` ∪ `{a}`
+    type `{b,c}` = `{b}` ∪ `{c}`
+
+    type `{c,a}` = `{c}` ∪ `{a}`
+
+    type `{a,b,c}` = `{a,b}` ∪ `{c}`
+
+    type `{a,b,c,d}` = `{a,b,c}` ∪ `{d}`
+
+    type `abc diff bc` = `{a,b,c}` Difference `{b,c}`
+    type `abc diff ab` = `{a,b,c}` Difference `{a,b}`
+    type `abcd diff bc` = `{a,b,c,d}` Difference `{b,c}`
+
+
+    test("BelongsTo should work for singletons") {
+      implicitly[a ∊ `{a}`]
+      implicitly[b ∊ `{b}`]
+    }
 
     test("BelongsTo should be order insensitive") {
       implicitly[a ∊ `{a,b}`]
       implicitly[a ∊ `{b,a}`]
     }
-    test("each element should belong to set of 3 elements"){
+
+    test("each element should belong to set of 3 elements") {
       implicitly[a ∊ `{a,b,c}`]
       implicitly[b ∊ `{a,b,c}`]
       implicitly[c ∊ `{a,b,c}`]
     }
+
+    test("union with empty set should be equivalent") {
+      type aEmpty = ∅ ∪ `{a}`
+      type emptyA = `{a}` ∪ ∅
+      implicitly[a ∊ aEmpty]
+      implicitly[a ∊ emptyA]
+    }
+
+    test("should work for universum") {
+      implicitly[a ∊ Universum]
+      implicitly[b ∊ Universum]
+      implicitly[c ∊ Universum]
+    }
+
+
+      test("not be found for Empty"){
+        implicitly[a ∊ `{a}`]
+        // "implicitly[A ∊ ∅]" shouldNot compile
+      }
+
+      test("not found invalid implicit for singleton"){
+        implicitly[a ∊ `{a}`]
+//        "implicitly[b ∊ `{a}`]" shouldNot compile
+      }
+
+      test("not found invalid implicit for union"){
+        implicitly[b ∊ `{a,b}`]
+//        "implicitly[c ∊ `{a,b}`]" shouldNot compile
+      }
+
+      test("work for union intersection"){
+        type `ab ∩ ca` = `{a,b}` ∩ `{c,a}`
+        implicitly[a ∊ `ab ∩ ca`]
+//        "implicitly[c ∊ `ab ∩ ba`]" shouldNot compile
+      }
+
+      test("works for tail Subtract"){
+        implicitly[a ∊ `abcd diff bc`]
+//        "implicitly[b ∊ `abc \ bc`]" shouldNot compile
+//        "implicitly[c ∊ `abc \ bc`]" shouldNot compile
+      }
+
+      test("works for head Subtract"){
+        implicitly[c ∊ `abcd diff bc`]
+//        "implicitly[B ∊ `abc_diff_ab`]" shouldNot compile
+//        "implicitly[A ∊ `abc_diff_ab`]" shouldNot compile
+      }
+
+      test("works for middle Subtract"){
+        implicitly[a ∊ `abcd diff bc`]
+        implicitly[d ∊ `abcd diff bc`]
+//        "implicitly[B ∊ `abcd_diff_bc`]" shouldNot compile
+//        "implicitly[C ∊ `abcd_diff_bc`]" shouldNot compile
+      }
   }
-//
-//  "BelongsTo" should "be order insensitive " in {
-//
-//  }
-//
-//  it should "work for first union element" in {
-//  }
-//
-//  it should "work for middle union element" in {
-//    type abc = Singleton[A] ∪ Singleton[B] ∪ Singleton[C]
-//    implicitly[B ∊ abc]
-//  }
-//
-//  it should "work for last union element" in {
-//    type abc = Singleton[A] ∪ Singleton[B] ∪ Singleton[C]
-//    implicitly[C ∊ abc]
-//  }
-//
-//  it should "work for singleton" in {
-//    implicitly[A ∊ Singleton[A]]
-//  }
-//
-//  it should "not be found for Empty" in {
-//    "implicitly[A ∊ Singleton[A]]" should compile
-//    "implicitly[A ∊ ∅]" shouldNot compile
-//  }
-//
-//  it should "not found invalid implicit for singleton" in {
-//    "implicitly[A ∊ Singleton[A]]" should compile
-//    "implicitly[B ∊ Singleton[A]]" shouldNot compile
-//  }
-//
-//  it should "not found invalid implicit for union" in {
-//    "implicitly[B ∊ (Singleton[A] ∪ Singleton[B])]" should compile
-//    "implicitly[C ∊ (Singleton[A] ∪ Singleton[B])]" shouldNot compile
-//  }
-//
-//  it should "match empty union with singleton" in {
-//    type aEmpty = Empty ∪ Singleton[A]
-//    type emptyA =  Singleton[A] ∪ Empty
-//    implicitly[A ∊ aEmpty]
-//    implicitly[A ∊ emptyA]
-//  }
-//
-//  it should "work for union intersection" in {
-//    type ab = Singleton[A] ∪ Singleton[B]
-//    type ca = Singleton[C] ∪ Singleton[A]
-//    type `ab∩ca` = ab ∩ ca
-//    implicitly[A ∊ `ab∩ca`]
-//    "implicitly[C ∊ `ab∩ba`]" shouldNot compile
-//  }
-//
-//  it should "work for universum" in {
-//    implicitly[A ∊ Universum]
-//    implicitly[B ∊ Universum]
-//    implicitly[C ∊ Universum]
-//  }
-//
-//  it should "works for tail Subtract" in {
-//    type abc = Singleton[A] ∪ Singleton[B] ∪ Singleton[C]
-//    type bc = Singleton[B] ∪ Singleton[C]
-//    type `abc_diff_bc` = abc Subtract bc
-//    implicitly[A ∊ `abc_diff_bc`]
-//    "implicitly[B ∊ `abc_diff_bc`]" shouldNot compile
-//    "implicitly[C ∊ `abc_diff_bc`]" shouldNot compile
-//  }
-//
-//  it should "works for head Subtract" in {
-//    type abc = Singleton[A] ∪ Singleton[B] ∪ Singleton[C]
-//    type ab = Singleton[A] ∪ Singleton[B]
-//    type `abc_diff_ab` = abc Subtract ab
-//    implicitly[C ∊ `abc_diff_ab`]
-//    "implicitly[B ∊ `abc_diff_ab`]" shouldNot compile
-//    "implicitly[A ∊ `abc_diff_ab`]" shouldNot compile
-//  }
-//
-//  it should "works for middle Subtract" in {
-//    type abcd = Singleton[A] ∪ Singleton[B] ∪ Singleton[C] ∪ Singleton[D]
-//    type bc = Singleton[B] ∪ Singleton[C]
-//    type `abcd_diff_bc` = abcd Subtract bc
-//    implicitly[A ∊ `abcd_diff_bc`]
-//    implicitly[D ∊ `abcd_diff_bc`]
-//    "implicitly[B ∊ `abcd_diff_bc`]" shouldNot compile
-//    "implicitly[C ∊ `abcd_diff_bc`]" shouldNot compile
-//  }
 }

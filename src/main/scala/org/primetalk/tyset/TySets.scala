@@ -28,26 +28,29 @@ sealed trait TySetBase {
    *   A \ B = A ∩ Not[B]
    * }}}
    */
-  sealed trait Subtract[A <: TySet, B <: TySet] extends TySet
+  sealed trait Difference[A <: TySet, B <: TySet] extends TySet
 
-  type Not[A <: TySet] = Subtract[Universum, A] // Universum \ A
+  type -[A <: TySet, B <: TySet] = Difference[A,B]
+
+  type Not[A <: TySet] = Difference[Universum, A] // Universum \ A
+  type ¬[A <: TySet] = Difference[Universum, A] // u00AC
 
   /** XOR
    * {{{
    *   A ^ B = A ∪ B \ A ∩ B
    * }}}
    */
-  sealed trait Xor[A <: TySet, B <: TySet] extends TySet
+  sealed trait SymmetricDifference[A <: TySet, B <: TySet] extends TySet
 
   /** A possible variant:
    * {{{
    *   e +: S = {e} ∪ S
+   *   sealed trait Insert[E, S <: TySet] extends TySet
    * }}}
    * Looks like we don't often use `Insert`, so we may replace it according to the above equation.
    */
-  sealed trait Insert[E, S <: TySet] extends TySet
 
-  //  type Insert[E, S <: UniSet] = Union[Singleton[E], S]
+  type Insert[E, S <: TySet] = Union[Singleton[E], S]
 
   /** Applies `F` to each element of the set. */
   sealed trait TyMap[S <: TySet, F[_]] extends TySet
@@ -94,6 +97,10 @@ sealed trait TyProperties extends TySetBase {
   //    def aToB(a: A): B
   //    def bToA(b: B): A
   //  }
+
+  /**
+   * Evidence that the set has only one element and the element is a subtype of type Up.
+   */
   @implicitNotFound("Couldn't prove that the set has only one element")
   sealed trait Cardinality1[Up, S <: TySet] {
     // the type of the single element of the set
@@ -120,17 +127,17 @@ sealed trait BelongsToLowPriority extends TyProperties {
   implicit def universum[E]: BelongsTo[E, Universum] = new BelongsTo[E, Universum] {}
 
 
-  implicit def SubtractBelongsToA[E, A <: TySet, B <: TySet](implicit ea: BelongsTo[E, A]): BelongsTo[E, Subtract[A, B]] = new BelongsTo[E, Subtract[A, B]] {}
+  implicit def SubtractBelongsToA[E, A <: TySet, B <: TySet](implicit ea: BelongsTo[E, A]): BelongsTo[E, Difference[A, B]] = new BelongsTo[E, Difference[A, B]] {}
 
-  implicit def SubtractBelongsToAB[E, A <: TySet, B <: TySet](implicit ea: BelongsTo[E, A], enb: BelongsTo[E, Not[B]]): BelongsTo[E, Subtract[A, B]] = ???
+//  implicit def SubtractBelongsToAB[E, A <: TySet, B <: TySet](implicit ea: BelongsTo[E, A], enb: BelongsTo[E, Not[B]]): BelongsTo[E, Difference[A, B]] = ???
 
-  implicit def XorBelongsToA[E, A <: TySet, B <: TySet](implicit ea: BelongsTo[E, A]): BelongsTo[E, Xor[A, B]] = new BelongsTo[E, Xor[A, B]] {}
+  implicit def XorBelongsToA[E, A <: TySet, B <: TySet](implicit ea: BelongsTo[E, A]): BelongsTo[E, SymmetricDifference[A, B]] = new BelongsTo[E, SymmetricDifference[A, B]] {}
 
-  implicit def XorBelongsToB[E, A <: TySet, B <: TySet](implicit eb: BelongsTo[E, B]): BelongsTo[E, Xor[A, B]] = new BelongsTo[E, Xor[A, B]] {}
+  implicit def XorBelongsToB[E, A <: TySet, B <: TySet](implicit eb: BelongsTo[E, B]): BelongsTo[E, SymmetricDifference[A, B]] = new BelongsTo[E, SymmetricDifference[A, B]] {}
 
   // checking S has lower priority.
   // See also InsertEBelongsTo
-  implicit def InsertSBelongsTo[Element, S <: TySet](implicit s: BelongsTo[Element, S]): BelongsTo[Element, Insert[Element, S]] = new BelongsTo[Element, Insert[Element, S]] {}
+//  implicit def InsertSBelongsTo[Element, S <: TySet](implicit s: BelongsTo[Element, S]): BelongsTo[Element, Insert[Element, S]] = new BelongsTo[Element, Insert[Element, S]] {}
 
   // produce runtime evidence when needed
   def runtimeBelongsTo[A, B <: A](b: B, s: Set[A]): Option[BelongsTo[B, Set[A]]] =
@@ -146,7 +153,7 @@ sealed trait BelongsToLowPriority extends TyProperties {
 // fallback to by-element check of subsets.
 sealed trait ElementwiseIsSubSetOf extends TyProperties {
   implicit def singletonIsSubset[E, S <: TySet](implicit es: BelongsTo[E, S]): IsSubSetOf[Singleton[E], S] = new IsSubSetOf[Singleton[E], S] {}
-  implicit def insertIsSubset[E, A <: TySet, S <: TySet](implicit es: BelongsTo[E, S], as: IsSubSetOf[A, S]): IsSubSetOf[Insert[E, A], S] = new IsSubSetOf[Insert[E, A], S] {}
+//  implicit def insertIsSubset[E, A <: TySet, S <: TySet](implicit es: BelongsTo[E, S], as: IsSubSetOf[A, S]): IsSubSetOf[Insert[E, A], S] = new IsSubSetOf[Insert[E, A], S] {}
 }
 
 sealed trait IsSubSetOfLowPriority extends ElementwiseIsSubSetOf  {
@@ -156,11 +163,11 @@ sealed trait IsSubSetOfLowPriority extends ElementwiseIsSubSetOf  {
   //
   implicit def UnionABIsSubsetOfS[A <: TySet, B <: TySet, S <: TySet](implicit as: IsSubSetOf[A, S], bs: IsSubSetOf[B, S]): IsSubSetOf[Union[A,B], S] = new IsSubSetOf[Union[A,B], S] {}
 
-  implicit def subtractFromSmallerIsEmpty[A <: TySet, B <: TySet](implicit ab: IsSubSetOf[A,B]): IsSubSetOf[Subtract[A,B], Empty] = new IsSubSetOf[Subtract[A,B], Empty] {}
+  implicit def subtractFromSmallerIsEmpty[A <: TySet, B <: TySet](implicit ab: IsSubSetOf[A,B]): IsSubSetOf[Difference[A,B], Empty] = new IsSubSetOf[Difference[A,B], Empty] {}
 
   implicit def intersectionOfSingletonsIsEmpty[E1, E2]: IsSubSetOf[Intersection[Singleton[E1], Singleton[E2]], Empty] = new IsSubSetOf[Intersection[Singleton[E1], Singleton[E2]], Empty] {}
-  implicit def subtractFromNonIntersectingIsTheSame[A <: TySet, B <: TySet](implicit ab: IsSubSetOf[Intersection[A,B], Empty]): IsSubSetOf[Subtract[A,B], A] = new IsSubSetOf[Subtract[A,B], A] {}
-  implicit def SIsSubsetOfUnionAB_A[S <: TySet, A <: TySet, B <: TySet](implicit smabb: IsSubSetOf[Subtract[S, A], B]): IsSubSetOf[S, Union[A,B]] = new IsSubSetOf[S, Union[A,B]] {}
+  implicit def subtractFromNonIntersectingIsTheSame[A <: TySet, B <: TySet](implicit ab: IsSubSetOf[Intersection[A,B], Empty]): IsSubSetOf[Difference[A,B], A] = new IsSubSetOf[Difference[A,B], A] {}
+  implicit def SIsSubsetOfUnionAB_A[S <: TySet, A <: TySet, B <: TySet](implicit smabb: IsSubSetOf[Difference[S, A], B]): IsSubSetOf[S, Union[A,B]] = new IsSubSetOf[S, Union[A,B]] {}
 
   //TODO  implicit def SIsSubsetOfUnionAB[S <: UniSet, A <: UniSet, B <: UniSet](implicit as: IsSubSetOf[A, S], bs: IsSubSetOf[B, S]): IsSubSetOf[Union[A,B], S] = new BelongsTo[Element, Union[A,B]] {}
 
@@ -171,15 +178,15 @@ sealed trait IsSubSetOfLowPriority extends ElementwiseIsSubSetOf  {
   //  implicit def aMinusBIsInC[A <: UniSet, B <: UniSet, C <: UniSet](implicit ev: IsSubSetOf[A, Union[B,C]]): IsSubSetOf[Subtract[A,B], C] = new IsSubSetOf[Subtract[A,B], C] {}
   implicit def SIsSubSetOfIntersectionAB[S <: TySet, A <: TySet, B <: TySet](implicit sa: IsSubSetOf[S,A], sb: IsSubSetOf[S,B]): IsSubSetOf[S, Intersection[A,B]] = new IsSubSetOf[S, Intersection[A,B]] {}
   //
-  implicit def SubIsSubsetOfA[A<:TySet, B<:TySet]: IsSubSetOf[Subtract[A,B], A] = new IsSubSetOf[Subtract[A,B], A] {}
-  implicit def SubAAIsSubsetOfEmpty[A<:TySet]: IsSubSetOf[Subtract[A,A], Empty] = new IsSubSetOf[Subtract[A,A], Empty] {}
+  implicit def SubIsSubsetOfA[A<:TySet, B<:TySet]: IsSubSetOf[Difference[A,B], A] = new IsSubSetOf[Difference[A,B], A] {}
+  implicit def SubAAIsSubsetOfEmpty[A<:TySet]: IsSubSetOf[Difference[A,A], Empty] = new IsSubSetOf[Difference[A,A], Empty] {}
 
-  implicit def AIsSubSetOfXor[A<:TySet, B<:TySet]: IsSubSetOf[Subtract[A,B], Xor[A,B]] = new IsSubSetOf[Subtract[A,B], Xor[A,B]] {}
-  implicit def BIsSubSetOfXor[A<:TySet, B<:TySet]: IsSubSetOf[Subtract[B,A], Xor[A,B]] = new IsSubSetOf[Subtract[B,A], Xor[A,B]] {}
+  implicit def AIsSubSetOfXor[A<:TySet, B<:TySet]: IsSubSetOf[Difference[A,B], SymmetricDifference[A,B]] = new IsSubSetOf[Difference[A,B], SymmetricDifference[A,B]] {}
+  implicit def BIsSubSetOfXor[A<:TySet, B<:TySet]: IsSubSetOf[Difference[B,A], SymmetricDifference[A,B]] = new IsSubSetOf[Difference[B,A], SymmetricDifference[A,B]] {}
 
-  implicit def EIsSubSetOfInsert[E, S <: TySet]: IsSubSetOf[Singleton[E], Insert[E,S]] = new IsSubSetOf[Singleton[E], Insert[E,S]] {}
-  implicit def SIsSubSetOfInsert[E, S <: TySet]: IsSubSetOf[S, Insert[E,S]] = new IsSubSetOf[S, Insert[E,S]] {}
-  implicit def EInsIsSubSetOfE[E, S <: TySet]: IsSubSetOf[Insert[E,Empty], Singleton[E]] = new IsSubSetOf[Insert[E,Empty], Singleton[E]] {}
+//  implicit def EIsSubSetOfInsert[E, S <: TySet]: IsSubSetOf[Singleton[E], Insert[E,S]] = new IsSubSetOf[Singleton[E], Insert[E,S]] {}
+//  implicit def SIsSubSetOfInsert[E, S <: TySet]: IsSubSetOf[S, Insert[E,S]] = new IsSubSetOf[S, Insert[E,S]] {}
+//  implicit def EInsIsSubSetOfE[E, S <: TySet]: IsSubSetOf[Insert[E,Empty], Singleton[E]] = new IsSubSetOf[Insert[E,Empty], Singleton[E]] {}
   implicit def MapIsSubSetOfE[A<:TySet, B<:TySet, F[_]](implicit ab: IsSubSetOf[A, B]): IsSubSetOf[TyMap[A,F], TyMap[B,F]] = new IsSubSetOf[TyMap[A,F], TyMap[B,F]] {}
 }
 
@@ -189,8 +196,8 @@ sealed trait IsSubSetOfHighPriority extends IsSubSetOfLowPriority {
   //  implicit def SingletonIsSubSetOf[Element]: IsSubSetOf[Singleton[Element], Singleton[Element]] = new IsSubSetOf[Singleton[Element], Singleton[Element]] {}
 
   implicit def UniversumIsSuperSetOf[A<:TySet]: IsSubSetOf[A, Universum] = new IsSubSetOf[A, Universum] {}
-  implicit def SIsSubsetOfUnionAB_B[S <: TySet, A <: TySet, B <: TySet](implicit smbba: IsSubSetOf[Subtract[S, B], A]): IsSubSetOf[S, Union[A,B]] = new IsSubSetOf[S, Union[A,B]] {}
-  implicit def SubIsSubsetOfNotB[A<:TySet, B<:TySet]: IsSubSetOf[Subtract[A,B], Not[B]] = new IsSubSetOf[Subtract[A,B], Not[B]] {}
+  implicit def SIsSubsetOfUnionAB_B[S <: TySet, A <: TySet, B <: TySet](implicit smbba: IsSubSetOf[Difference[S, B], A]): IsSubSetOf[S, Union[A,B]] = new IsSubSetOf[S, Union[A,B]] {}
+  implicit def SubIsSubsetOfNotB[A<:TySet, B<:TySet]: IsSubSetOf[Difference[A,B], Not[B]] = new IsSubSetOf[Difference[A,B], Not[B]] {}
 
   // Universal properties of Intersection
   implicit def intersectionOfTheSameSetIsTheSameSet[S <: TySet]: IsSubSetOf[Intersection[S, S], S] = new IsSubSetOf[Intersection[S, S], S] {}
@@ -198,7 +205,7 @@ sealed trait IsSubSetOfHighPriority extends IsSubSetOfLowPriority {
   implicit def UnionOfTheSameSetIsTheSameSet[S <: TySet]: IsSubSetOf[Union[S, S], S] = new IsSubSetOf[Union[S, S], S] {}
 
   // Universal properties of Empty
-  implicit def subtractEmptyIsTheSame[A <: TySet]: IsSubSetOf[Subtract[A,Empty], A] = new IsSubSetOf[Subtract[A,Empty], A] {}
+  implicit def subtractEmptyIsTheSame[A <: TySet]: IsSubSetOf[Difference[A,Empty], A] = new IsSubSetOf[Difference[A,Empty], A] {}
   implicit def intersectEmptyIsEmpty[A <: TySet]: IsSubSetOf[Intersection[A,Empty], Empty] = new IsSubSetOf[Intersection[A,Empty], Empty] {}
 
 }
@@ -211,9 +218,9 @@ sealed trait RenderLowPriority extends TyProperties {
   // cannot render Not[A <: UniSet] = Subtract[Universum, A]
   implicit def UnionRender[Up, A <: TySet, B <: TySet](implicit ra: Render[Up, A], rb: Render[Up, B]): Render[Up, Union[A,B]] = RenderImpl[Up, Union[A,B]](ra.elements ++ rb.elements)
   implicit def IntersectionRender[Up, A <: TySet, B <: TySet](implicit ra: Render[Up, A], rb: Render[Up, B]): Render[Up, Intersection[A,B]] = RenderImpl[Up, Intersection[A,B]](ra.elements.intersect(rb.elements))
-  implicit def SubtractRender[Up, A <: TySet, B <: TySet](implicit ra: Render[Up, A], rb: Render[Up, B]): Render[Up, Subtract[A,B]] = RenderImpl[Up, Subtract[A,B]](ra.elements -- rb.elements)
-  implicit def XorRender[Up, A <: TySet, B <: TySet](implicit ra: Render[Up, A], rb: Render[Up, B]): Render[Up, Xor[A,B]] = RenderImpl[Up, Xor[A,B]](ra.elements ++ rb.elements -- ra.elements.intersect(rb.elements))
-  implicit def InsertRender[Up, E<:Up:ValueOf, S <: TySet](implicit rs: Render[Up, S]): Render[Up, Insert[E, S]] = RenderImpl[Up, Insert[E, S]](rs.elements + valueOf[E])
+  implicit def SubtractRender[Up, A <: TySet, B <: TySet](implicit ra: Render[Up, A], rb: Render[Up, B]): Render[Up, Difference[A,B]] = RenderImpl[Up, Difference[A,B]](ra.elements -- rb.elements)
+  implicit def XorRender[Up, A <: TySet, B <: TySet](implicit ra: Render[Up, A], rb: Render[Up, B]): Render[Up, SymmetricDifference[A,B]] = RenderImpl[Up, SymmetricDifference[A,B]](ra.elements ++ rb.elements -- ra.elements.intersect(rb.elements))
+//  implicit def InsertRender[Up, E<:Up:ValueOf, S <: TySet](implicit rs: Render[Up, S]): Render[Up, Insert[E, S]] = RenderImpl[Up, Insert[E, S]](rs.elements + valueOf[E])
 }
 
 sealed trait RenderMapLowPriority extends RenderLowPriority {
@@ -223,15 +230,15 @@ sealed trait RenderMapLowPriority extends RenderLowPriority {
   // cannot render Not[A <: UniSet] = Subtract[Universum, A]
   implicit def MapUnionRender[Up, A <: TySet, B <: TySet, F[_]](implicit ra: Render[Up, TyMap[A,F]], rb: Render[Up, TyMap[B,F]]): Render[Up, TyMap[Union[A,B], F]] = RenderImpl[Up, TyMap[Union[A,B], F]](ra.elements ++ rb.elements)
   implicit def MapIntersectionRender[Up, A <: TySet, B <: TySet, F[_]](implicit ra: Render[Up, TyMap[A,F]], rb: Render[Up, TyMap[B,F]]): Render[Up, TyMap[Intersection[A,B], F]] = RenderImpl[Up, TyMap[Intersection[A,B], F]](ra.elements.intersect(rb.elements))
-  implicit def MapSubtractRender[Up, A <: TySet, B <: TySet, F[_]](implicit ra: Render[Up, TyMap[A,F]], rb: Render[Up, TyMap[B,F]]): Render[Up, TyMap[Subtract[A,B], F]] = RenderImpl[Up, TyMap[Subtract[A,B], F]](ra.elements -- rb.elements)
-  implicit def MapXorRender[Up, A <: TySet, B <: TySet, F[_]](implicit ra: Render[Up, TyMap[A,F]], rb: Render[Up, TyMap[B,F]]): Render[Up, TyMap[Xor[A,B], F]] = RenderImpl[Up, TyMap[Xor[A,B], F]](ra.elements ++ rb.elements -- ra.elements.intersect(rb.elements))
-  implicit def MapInsertRender[Up, E, S <: TySet, F[_]](implicit rs: Render[Up, TyMap[S, F]], me: ValueOf[F[E]], ev: F[E] <:< Up): Render[Up, TyMap[Insert[E, S], F]] = RenderImpl[Up, TyMap[Insert[E, S], F]](rs.elements + valueOf[F[E]])
+  implicit def MapSubtractRender[Up, A <: TySet, B <: TySet, F[_]](implicit ra: Render[Up, TyMap[A,F]], rb: Render[Up, TyMap[B,F]]): Render[Up, TyMap[Difference[A,B], F]] = RenderImpl[Up, TyMap[Difference[A,B], F]](ra.elements -- rb.elements)
+  implicit def MapXorRender[Up, A <: TySet, B <: TySet, F[_]](implicit ra: Render[Up, TyMap[A,F]], rb: Render[Up, TyMap[B,F]]): Render[Up, TyMap[SymmetricDifference[A,B], F]] = RenderImpl[Up, TyMap[SymmetricDifference[A,B], F]](ra.elements ++ rb.elements -- ra.elements.intersect(rb.elements))
+//  implicit def MapInsertRender[Up, E, S <: TySet, F[_]](implicit rs: Render[Up, TyMap[S, F]], me: ValueOf[F[E]], ev: F[E] <:< Up): Render[Up, TyMap[Insert[E, S], F]] = RenderImpl[Up, TyMap[Insert[E, S], F]](rs.elements + valueOf[F[E]])
 }
 
 sealed trait BelongsToHighPriority extends BelongsToLowPriority {
   implicit def UnionBelongsToA[Element, A <: TySet,B <: TySet](implicit ea: BelongsTo[Element, A]): BelongsTo[Element, Union[A,B]] = new BelongsTo[Element, Union[A,B]] {}
   // if we insert element, then it belongs to the set.
-  implicit def InsertEBelongsTo[Element, S <: TySet]: BelongsTo[Element, Insert[Element, S]] = new BelongsTo[Element, Insert[Element, S]] {}
+//  implicit def InsertEBelongsTo[Element, S <: TySet]: BelongsTo[Element, Insert[Element, S]] = new BelongsTo[Element, Insert[Element, S]] {}
 }
 
 sealed trait EachElementIsSubtypeLowPriority extends TyProperties {
@@ -243,10 +250,10 @@ sealed trait EachElementIsSubtypeLowPriority extends TyProperties {
   implicit def IntersectionBEachElementIsSubtype[Up, A<: TySet, B <: TySet](implicit eb: EachElementIsSubtype[Up, B]): EachElementIsSubtype[Up, Intersection[A,B]] =
     new EachElementIsSubtype[Up, Intersection[A,B]] {}
 
-  implicit def XorEachElementIsSubtype[Up, A<: TySet, B <: TySet](implicit ea: EachElementIsSubtype[Up, A], eb: EachElementIsSubtype[Up, B]): EachElementIsSubtype[Up, Xor[A,B]] =
-    new EachElementIsSubtype[Up, Xor[A,B]] {}
+  implicit def XorEachElementIsSubtype[Up, A<: TySet, B <: TySet](implicit ea: EachElementIsSubtype[Up, A], eb: EachElementIsSubtype[Up, B]): EachElementIsSubtype[Up, SymmetricDifference[A,B]] =
+    new EachElementIsSubtype[Up, SymmetricDifference[A,B]] {}
 
-  implicit def InsertEachElementIsSubtype[Up, E<:Up, S <: TySet](implicit es: EachElementIsSubtype[Up, S]): EachElementIsSubtype[Up, Insert[E, S]] = new EachElementIsSubtype[Up, Insert[E, S]] {}
+//  implicit def InsertEachElementIsSubtype[Up, E<:Up, S <: TySet](implicit es: EachElementIsSubtype[Up, S]): EachElementIsSubtype[Up, Insert[E, S]] = new EachElementIsSubtype[Up, Insert[E, S]] {}
 }
 
 sealed trait EachElementIsSubtypeHighPriority extends EachElementIsSubtypeLowPriority {
@@ -263,17 +270,17 @@ sealed trait EqualSets extends TySetBase with IsSubSetOfHighPriority {
   //    override def bToA(b: Union[B, A]): Union[A, B] = ???
   //  }
   implicit def equalUnionEmpty[S<:TySet]:Equal[Union[S, Empty], S] = new Equal[Union[S, Empty], S] {}
-  implicit def equalInsertUnion[E, S<:TySet]:Equal[Insert[E, S],Union[Singleton[E], S]] = new Equal[Insert[E, S],Union[Singleton[E], S]]{}
+//  implicit def equalInsertUnion[E, S<:TySet]:Equal[Insert[E, S],Union[Singleton[E], S]] = new Equal[Insert[E, S],Union[Singleton[E], S]]{}
   implicit def equalAB[A<:TySet, B<:TySet](implicit ab: IsSubSetOf[A,B], ba: IsSubSetOf[B, A]): Equal[A,B] = new Equal[A,B] {}
 
-  implicit def insertExistingElement[E, S<:TySet](implicit es: BelongsTo[E, S]): Equal[Insert[E, S], S] = new Equal[Insert[E, S], S] {}
+//  implicit def insertExistingElement[E, S<:TySet](implicit es: BelongsTo[E, S]): Equal[Insert[E, S], S] = new Equal[Insert[E, S], S] {}
   implicit def insertExistingElement2[E, S<:TySet](implicit es: BelongsTo[E, S]): Equal[Union[Singleton[E], S], S] = new Equal[Union[Singleton[E], S], S] {}
   implicit def mapEq[A<:TySet, B<:TySet, F[_]](implicit eq: Equal[A, B]): Equal[TyMap[A, F], TyMap[B, F]] = new Equal[TyMap[A, F], TyMap[B, F]] {}
 }
 
 sealed trait SingletonSets extends TyProperties {
   implicit def singletonCardinality1[Up, E <: Up]: Cardinality1[Up, Singleton[E]]{type Element = E} = new Cardinality1[Up, Singleton[E]]{type Element = E}
-  implicit def insert1Cardinality1[Up, E <: Up]: Cardinality1[Up, Insert[E, Empty]]{type Element = E} = new Cardinality1[Up, Insert[E, Empty]]{type Element = E}
+//  implicit def insert1Cardinality1[Up, E <: Up]: Cardinality1[Up, Insert[E, Empty]]{type Element = E} = new Cardinality1[Up, Insert[E, Empty]]{type Element = E}
 }
 
 object TySets extends BelongsToHighPriority
