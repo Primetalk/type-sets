@@ -110,7 +110,7 @@ sealed trait TSetProperties extends TSetBase {
 
   type Equal[A <: TSet, B <: TSet] = IsSubSetOf[A, B] && IsSubSetOf[B, A]
 
-  type FoldLeft[S <: TSet, Res, Z <: Res, Combine[_ <: Res,_] <: Res] = S match
+  type FoldLeft[S <: TSet, Res, Z <: Res, Combine[_ <: Res,_] <: Res] <: Res = S match
     case Empty => Z
     case Universum => Nothing
     case Singleton[e] => Combine[Z, e]
@@ -135,7 +135,7 @@ sealed trait TSetProperties extends TSetBase {
         ], 
           [r, el] =>> If[BelongsTo[el, a], r, Combine[r, el]]
       ]
-  type FoldRight[S <: TSet, Res, Z <: Res, Combine[_, _ <: Res] <: Res] = S match
+  type FoldRight[S <: TSet, Res, Z <: Res, Combine[_, _ <: Res] <: Res] <: Res = S match
     case Empty => Z
     case Universum => Nothing
     case Singleton[e] => Combine[e, Z]
