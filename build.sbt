@@ -21,10 +21,27 @@ ThisBuild / versionScheme := Some("early-semver")
 //)
 //
 
-lazy val `type-sets` = (project in file(".")).
-  settings(
-    organization := "ru.primetalk",
+val commonSettings = Seq(
+  scalaVersion := scala3Version,
+  organization := "ru.primetalk",
+  // scalacOptions += "-Xmax-inlines=50",
+  libraryDependencies += "com.lihaoyi" %% "utest" % "0.8.1" % "test",
+  testFrameworks += new TestFramework("utest.runner.Framework"),
+  // libraryDependencies ++= Seq(
+  // )
+)
+
+lazy val root = (project in file("."))
+  .aggregate(
+    `type-sets-2020`,
+  )
+  .settings(
     name := "type-sets",
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.8.1" % "test",
-    testFrameworks += new TestFramework("utest.runner.Framework")
+    publish / skip := true,
+  )
+
+lazy val `type-sets-2020` = (project in file("type-sets-2020"))
+  .settings(commonSettings :_*)
+  .settings(
+    name := "type-sets-2020",
   )
