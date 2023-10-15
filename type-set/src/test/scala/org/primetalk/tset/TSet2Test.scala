@@ -48,7 +48,7 @@ class TSetTest extends TestSuite {
       val b1: Upper[`{a,b}`] = b
     }
     test("ToTuple"){
-      summon[ToTuple[`{a,b}`] =:= (b,a)]
+      summon[ToTuple[`{a,b}`] =:= (a, b)]
       summon[ToTuple[`{b}`] =:= b *: EmptyTuple]
     }
   }
