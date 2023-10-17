@@ -4,19 +4,10 @@ import utest._
 
 import scala.compiletime.ops.any._
 
-class BelongsTest extends TestSuite {
+class BelongsTest extends TestSuite with Abcd {
   import TSets._
 
   val tests: Tests = Tests {
-    sealed trait e
-    case object a extends e
-    type a = a.type
-    case object b extends e
-    type b = b.type
-    case object c extends e
-    type c = c.type
-    case object d extends e
-    type d = d.type
 
     type `{a}` = Singleton[a]
     type `{b}` = Singleton[b]

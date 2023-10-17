@@ -2,16 +2,10 @@ package org.primetalk.tset
 
 import utest._
 
-class TSetTest extends TestSuite {
+class TSetTest extends TestSuite with Abcd {
   import TSets._
 
   val tests: Tests = Tests {
-    case object a
-    type a = a.type
-    case object b
-    type b = b.type
-    case object c
-    type c = c.type
 
     type `{a}`     = Singleton[a]
     type `{b}`     = Singleton[b]
