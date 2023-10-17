@@ -1,6 +1,5 @@
 package org.primetalk.tset
 
-
 import utest._
 
 import scala.compiletime.ops.any._
@@ -35,8 +34,8 @@ class BelongsTest extends TestSuite {
 
     type `{a,b,c,d}` = `{a,b,c}` ∪ `{d}`
 
-    type `abc diff bc` = `{a,b,c}` Difference `{b,c}`
-    type `abc diff ab` = `{a,b,c}` Difference `{a,b}`
+    type `abc diff bc`  = `{a,b,c}` Difference `{b,c}`
+    type `abc diff ab`  = `{a,b,c}` Difference `{a,b}`
     type `abcd diff bc` = `{a,b,c,d}` Difference `{b,c}`
 
     test("BelongsTo should work for singletons") {
@@ -76,49 +75,48 @@ class BelongsTest extends TestSuite {
       assertTrue[c ∊ Universum]
     }
 
-
-    test("not be found for Empty"){
+    test("not be found for Empty") {
       assertTrue[a ∊ `{a}`]
       assertFalse[a ∊ ∅]
     }
 
-    test("not found invalid implicit for singleton"){
+    test("not found invalid implicit for singleton") {
       assertTrue[a ∊ `{a}`]
       assertFalse[b ∊ `{a}`]
-    } 
+    }
 
-    test("not found invalid implicit for union"){
+    test("not found invalid implicit for union") {
       assertTrue[b ∊ `{a,b}`]
       assertFalse[c ∊ `{a,b}`]
     }
 
-    test("work for union intersection"){
+    test("work for union intersection") {
       type `ab ∩ ca` = `{a,b}` ∩ `{c,a}`
       assertTrue[a ∊ `ab ∩ ca`]
       assertFalse[c ∊ `ab ∩ ca`]
     }
 
-    test("works for tail Subtract"){
+    test("works for tail Subtract") {
       assertTrue[a ∊ `abcd diff bc`]
       assertFalse[b ∊ `abc diff bc`]
       assertFalse[c ∊ `abc diff bc`]
     }
 
-    test("works for head Subtract"){
+    test("works for head Subtract") {
       assertTrue[a ∊ `abcd diff bc`]
       assertTrue[d ∊ `abcd diff bc`]
       assertTrue[c ∊ `abc diff ab`]
       assertFalse[b ∊ `abc diff ab`]
     }
 
-    test("works for middle Subtract"){
+    test("works for middle Subtract") {
       assertTrue[a ∊ `abcd diff bc`]
       assertTrue[d ∊ `abcd diff bc`]
       assertFalse[b ∊ `abcd diff bc`]
       assertFalse[c ∊ `abcd diff bc`]
     }
 
-    test("cardinality"){
+    test("cardinality") {
       assert(constInt[Cardinality[`abcd diff bc`]] == 2)
       assertTrue[Cardinality[`abcd diff bc`] == 2]
       assertTrue[Cardinality[`abc diff ab`] == 1]

@@ -7,9 +7,9 @@ class PortsTest extends TestSuite {
 
   val tests: Tests = Tests {
 
-    type `{80}` = Singleton[80]
+    type `{80}`   = Singleton[80]
     type `{8080}` = Singleton[8080]
-    type `{443}` = Singleton[443]
+    type `{443}`  = Singleton[443]
 
     type HttpPorts = `{80}` ∪ `{8080}` ∪ `{443}`
 

@@ -13,13 +13,12 @@ class TSetTest extends TestSuite {
     case object c
     type c = c.type
 
-    type `{a}` = Singleton[a]
-    type `{b}` = Singleton[b]
-    type `{a,b}` = Set2[a, b]
-    type `{b,c}` = Set2[b, c]
+    type `{a}`     = Singleton[a]
+    type `{b}`     = Singleton[b]
+    type `{a,b}`   = Set2[a, b]
+    type `{b,c}`   = Set2[b, c]
     type `{a,b,c}` = Set3[a, b, c]
-    type `¬{a}` = ¬[`{a}`]
-
+    type `¬{a}`    = ¬[`{a}`]
 
     test("BelongsTo should work in simple cases") {
       assertTrue[a ∊ `{a}`]
@@ -32,7 +31,7 @@ class TSetTest extends TestSuite {
       assertFalse[Int ∊ (`{a,b}` ^ `{b,c}`)]
     }
 
-    test("subset should work in simple cases"){
+    test("subset should work in simple cases") {
       assertTrue[`{b}` ⊂ `{a,b}`]
       assertTrue[`{b}` ⊂ `{a,b,c}`]
       assertTrue[`{b}` ⊂ (`{a,b,c}` ∩ `{a,b}`)]
@@ -43,11 +42,11 @@ class TSetTest extends TestSuite {
       assertTrue[Equal[`{b}`, `{b}` ∪ ∅]]
     }
 
-    test("upper"){
+    test("upper") {
       val a1: Upper[`{a,b}`] = a
       val b1: Upper[`{a,b}`] = b
     }
-    test("ToTuple"){
+    test("ToTuple") {
       summon[ToTuple[`{a,b}`] =:= (a, b)]
       summon[ToTuple[`{b}`] =:= b *: EmptyTuple]
     }
