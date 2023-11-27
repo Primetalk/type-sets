@@ -38,11 +38,18 @@ class EqualityTest extends TestSuite with Abcd {
       setEquals[`{a,b}`].apply(Set(a, b))
       setEquals[`{a,b}`]((b, a))
       setEquals[`{a,b}`]((b, a))
+      setEquals[`{a,b}`].to[`{b,a}`]
     }
     test("setIsASuperset should check that tuple contains at least the expected types") {
       setIsASuperset[`{a,b}`](Set(b, a, c))
+      type F[X] = X
+      type SavedToDB[X] = X
+      val f: [A] => ((a: A) => F[SavedToDB[A]]) ?=> F[SavedToDB[A]] = ???
+      given g: (Int => F[SavedToDB[Int]]) = ???
+      val h = f[Int]
+      
     }
-    
+
     test("elementByType should extract proper element from tuple") {
       // import Tuples.{given}
       // import org.primetalk.tuple.Tuples.construct

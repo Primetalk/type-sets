@@ -1,5 +1,6 @@
 package org.primetalk.tuple
 
+import scala.compiletime.error
 import scala.compiletime.ops.any.==
 import scala.compiletime.ops.boolean._
 import scala.compiletime.ops.int.{^ => ^^^, _}
@@ -23,19 +24,6 @@ type PrependDistinct[E, T <: Tuple] <: Tuple =
     case true  => T
     case false => E *: T
 
-type FoldLeft[S <: Tuple, Res, Z <: Res, Combine[_ <: Res, _] <: Res] <: Res = S match
-  case EmptyTuple => Z
-  case el *: tail =>
-    FoldLeft[tail, Res, Combine[Z, el], Combine]
-
-type FoldRight[S <: Tuple, Res, Z <: Res, Combine[_, _ <: Res] <: Res] <: Res = S match
-  case EmptyTuple => Z
-  case el *: tail =>
-    Combine[el, FoldRight[tail, Res, Z, Combine]]
-
-type Bottom[S <: Tuple] = FoldLeft[S, Any, Any, &]
-type Upper[S <: Tuple]  = FoldLeft[S, Any, Nothing, |]
-
 type Union[a <: Tuple, b <: Tuple] <: Tuple = a match
   case EmptyTuple => b
   case el *: tail =>
@@ -43,11 +31,12 @@ type Union[a <: Tuple, b <: Tuple] <: Tuple = a match
       case true  => Union[tail, b]
       case false => el *: Union[tail, b]
 
+infix type ∪[A <: Tuple, B <: Tuple] = Union[A, B] // \u222A
+
 type Singleton[a]              = Set1[a]
 type Set2[a, b]                = Union[Set1[a], Set1[b]]
 type Set3[a, b, c]             = Union[Set2[a, b], Set1[c]]
 type Set4[a, b, c, d]          = Union[Set3[a, b, c], Set1[d]]
-type ∪[A <: Tuple, B <: Tuple] = Union[A, B] // \u222A
 
 type Intersection[a <: Tuple, b <: Tuple] <: Tuple = a match
   case EmptyTuple => EmptyTuple
@@ -56,7 +45,7 @@ type Intersection[a <: Tuple, b <: Tuple] <: Tuple = a match
       case true  => el *: Intersection[tail, b]
       case false => Intersection[tail, b]
 
-type ∩[A <: Tuple, B <: Tuple] = Intersection[A, B] // \u2229
+infix type ∩[A <: Tuple, B <: Tuple] = Intersection[A, B] // \u2229
 
 type Difference[a <: Tuple, b <: Tuple] <: Tuple = a match
   case EmptyTuple => EmptyTuple
@@ -65,8 +54,8 @@ type Difference[a <: Tuple, b <: Tuple] <: Tuple = a match
       case true  => Difference[tail, b]
       case false => el *: Difference[tail, b]
 
-type -[a <: Tuple, b <: Tuple] = Difference[a, b]
-type \[a <: Tuple, b <: Tuple] = Difference[a, b]
+infix type -[a <: Tuple, b <: Tuple] = Difference[a, b]
+infix type \[a <: Tuple, b <: Tuple] = Difference[a, b]
 
 /** XOR
   * {{{
@@ -83,9 +72,10 @@ type Map[S <: Tuple, F[_]] = Tuple.Map[S, F]
 type ForAll[S <: Tuple, P[_] <: Boolean] <: Boolean = S match
   case EmptyTuple => true
   case el *: tail => P[el] && ForAll[tail, P]
-
+type ∀[S <: Tuple, P[_] <: Boolean] = ForAll[S,P]
 type Exists[S <: Tuple, P[_] <: Boolean] =
   ![ForAll[S, [e] =>> ![P[e]]]]
+type ∃[S <: Tuple, P[_] <: Boolean] = Exists[S,P]
 
 type IsSubSetOf[A <: Tuple, B <: Tuple] =
   ForAll[A, [a] =>> BelongsTo[a, B]]
@@ -95,6 +85,19 @@ type <=[A <: Tuple, B <: Tuple] = IsSubSetOf[A, B]
 type >=[A <: Tuple, B <: Tuple] = IsSubSetOf[B, A]
 
 type Equal[A <: Tuple, B <: Tuple] = IsSubSetOf[A, B] && IsSubSetOf[B, A]
+
+type FoldLeft[S <: Tuple, Res, Z <: Res, Combine[_ <: Res, _] <: Res] <: Res = S match
+  case EmptyTuple => Z
+  case el *: tail =>
+    FoldLeft[tail, Res, Combine[Z, el], Combine]
+
+type FoldRight[S <: Tuple, Res, Z <: Res, Combine[_, _ <: Res] <: Res] <: Res = S match
+  case EmptyTuple => Z
+  case el *: tail =>
+    Combine[el, FoldRight[tail, Res, Z, Combine]]
+
+type Bottom[S <: Tuple] = FoldLeft[S, Any, Any, &]
+type Upper[S <: Tuple]  = FoldLeft[S, Any, Nothing, |]
 
 type Cardinality[T <: Tuple] = Tuple.Size[T]
 
@@ -151,15 +154,20 @@ type Remove2[El, T <: Tuple] = Tuple.Filter[T, [t] =>> t == El]
 sealed trait TupleConversions:
   conversions =>
 
+  trait сhecker[A <: Tuple, P[_<: Tuple,_<: Tuple]<:Boolean]:
+    def apply[B <: Tuple](b: B)(using P[A, B] =:= true): true = true
+  transparent inline def setChecker[A <: Tuple, P[_<: Tuple,_<: Tuple]<:Boolean]: сhecker[A, P] = 
+    new сhecker[A, P] {}
+
+
   trait setEqualsChecker[A <: Tuple]:
-    def apply[B <: Tuple](b: B)(using ev: Equal[A, B] =:= true): true = true
+    inline def apply[B <: Tuple](b: B)(using ev: Equal[A, B] =:= true): true = true
+    inline def to[B <: Tuple](using ev: Equal[A, B] =:= true): true = true
   transparent inline def setEquals[A <: Tuple]: setEqualsChecker[A] = 
     new setEqualsChecker[A] {}
 
-  trait setIsASupersetChecker[A <: Tuple]:
-    def apply[B <: Tuple](b: B)(using ev: IsSubSetOf[A, B] =:= true): true = true
-  transparent inline def setIsASuperset[A <: Tuple]: setIsASupersetChecker[A] = 
-    new setIsASupersetChecker[A] {}
+  transparent inline def setIsASuperset[A <: Tuple] = 
+    setChecker[A, IsSubSetOf]
 
   def Set[T <: Tuple](t: T): T = t
 
@@ -172,13 +180,13 @@ sealed trait TupleConversions:
 
   transparent inline def get[El, T <: Tuple](inline t: T): Get[El, T] =
     inline t match
-      case _: EmptyTuple  => throw IllegalArgumentException(s"Requested type not found")
+      case _: EmptyTuple  => error("Requested type not found")
       case p: *:[`El`, _] => p.head
       case p: *:[_, _]    => get(p.tail)
 
   transparent inline def remove[El, T <: Tuple](inline t: T): Remove[El, T] =
     inline t match
-      case _: EmptyTuple  => throw IllegalArgumentException(s"Requested type not found")
+      case _: EmptyTuple  => error("Requested type not found")
       case p: *:[`El`, _] => p.tail
       case p: *:[_, _] =>
         val head *: (tail: Tuple.Tail[p.type]) = p
@@ -186,7 +194,7 @@ sealed trait TupleConversions:
 
   transparent inline def replace[T <: Tuple, El, A](a: A, inline t: T): Replace[T, El, A] =
     inline t match
-      case _: EmptyTuple  => throw IllegalArgumentException(s"Requested type not found")
+      case _: EmptyTuple  => error("Requested type not found")
       case p: *:[`El`, _] => a *: p.tail
       case p: *:[_, _] =>
         val head *: (tail: Tuple.Tail[p.type]) = p
